@@ -115,18 +115,25 @@ func TestErrorStatus(t *testing.T) {
 	}
 }
 
+// 没注册的方法要**立刻**回 Unimplemented，不能挂着。
+//
+// 用 conn.Invoke 直接打一个不存在的方法名 —— 生成的桩里只有 .proto 里
+// 那两个方法，构造不出「不存在的方法」。
 func TestUnimplementedMethod(t *testing.T) {
-	client, done := dial(t)
-	defer done()
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	stream, err := client.Chatter(ctx)
-	if err != nil {
-		t.Fatalf("开流失败: %v", err)
+	addr := os.Getenv("QI_GRPC_ADDR")
+	if addr == "" {
+		addr = "127.0.0.1:47813"
 	}
-	_ = stream.Send(&pb.HelloRequest{Name: "喂"})
-	_, err = stream.Recv()
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		t.Fatalf("连不上: %v", err)
+	}
+	defer conn.Close()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	err = conn.Invoke(ctx, "/greet.Greeter/NoSuchMethod",
+		&pb.HelloRequest{Name: "喂"}, &pb.HelloReply{})
 	st, ok := status.FromError(err)
 	if !ok || st.Code() != codes.Unimplemented {
 		t.Fatalf("没注册的方法要回 Unimplemented，拿到 %v", err)
