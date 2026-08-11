@@ -10,6 +10,8 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
+	"io"
 	"log"
 	"net"
 	"strings"
@@ -23,6 +25,8 @@ import (
 
 type server struct {
 	pb.UnimplementedGreeterServer
+	// 自己的地址会随响应带回去 —— 客户端靠它数出请求分到了哪几个后端
+	addr string
 }
 
 func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloReply, error) {
@@ -47,8 +51,30 @@ func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloRe
 	return &pb.HelloReply{
 		Message:  strings.TrimSpace(msg),
 		ServedAt: time.Now().Unix(),
-		Detail:   &pb.Detail{Server: "go", Cached: len(in.Tags) > 0},
+		Detail:   &pb.Detail{Server: s.addr, Cached: len(in.Tags) > 0},
 	}, nil
+}
+
+// 双向流：客户端发一条我们回一条，它半关我们就收尾。
+// 给 qi 客户端的流式当靶子。
+func (s *server) Chatter(stream pb.Greeter_ChatterServer) error {
+	n := 0
+	for {
+		in, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		n++
+		if err := stream.Send(&pb.HelloReply{
+			Message:  fmt.Sprintf("go #%d: hi %s", n, in.Name),
+			ServedAt: time.Now().Unix(),
+		}); err != nil {
+			return err
+		}
+	}
 }
 
 func main() {
@@ -60,7 +86,7 @@ func main() {
 		log.Fatalf("监听失败: %v", err)
 	}
 	s := grpc.NewServer()
-	pb.RegisterGreeterServer(s, &server{})
+	pb.RegisterGreeterServer(s, &server{addr: *addr})
 	log.Printf("Go gRPC 服务端: %s", *addr)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("服务退出: %v", err)
