@@ -1,0 +1,34 @@
+// 互通验收用的最小服务定义。字段特意覆盖几类容易出岔子的类型：
+// int64（proto3 JSON 里是字符串）、枚举（是名字不是数字）、repeated、嵌套。
+syntax = "proto3";
+
+package greet;
+
+service Greeter {
+  rpc SayHello (HelloRequest) returns (HelloReply);
+  rpc Chatter (stream HelloRequest) returns (stream HelloReply);
+}
+
+enum Mood {
+  MOOD_UNKNOWN = 0;
+  MOOD_HAPPY = 1;
+  MOOD_TIRED = 2;
+}
+
+message HelloRequest {
+  string name = 1;
+  int64 times = 2;
+  Mood mood = 3;
+  repeated string tags = 4;
+}
+
+message HelloReply {
+  string message = 1;
+  int64 served_at = 2;
+  Detail detail = 3;
+}
+
+message Detail {
+  string server = 1;
+  bool cached = 2;
+}
