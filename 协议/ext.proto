@@ -1,0 +1,16 @@
+// 带扩展（extension）的定义，专门验反射的两种扩展请求。
+// proto3 里扩展只能用在 options 上，所以这里用 proto2 —— 反射规范里
+// 那两个请求本来就是为 proto2 的扩展设计的。
+syntax = "proto2";
+
+package extdemo;
+
+message Base {
+  optional string name = 1;
+  extensions 100 to 200;
+}
+
+extend Base {
+  optional int32 age = 100;
+  optional string city = 137;
+}

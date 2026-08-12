@@ -1,13 +1,16 @@
 module qigrpc/interop
 
-go 1.24
+go 1.24.0
 
 require (
+	github.com/jhump/protoreflect v1.18.0
 	google.golang.org/grpc v1.68.0
-	google.golang.org/protobuf v1.35.2
+	google.golang.org/protobuf v1.36.11
 )
 
 require (
+	github.com/golang/protobuf v1.5.4 // indirect
+	github.com/jhump/protoreflect/v2 v2.0.0-beta.1 // indirect
 	golang.org/x/net v0.29.0 // indirect
 	golang.org/x/sys v0.25.0 // indirect
 	golang.org/x/text v0.18.0 // indirect
